@@ -5,6 +5,7 @@
 #include <FastLED.h>
 #include <WiFi.h>
 #include "gates.h"
+#include "persist.h"
 
 BLEServer* pServer = NULL;
 BLECharacteristic* pCharType = NULL;
@@ -40,15 +41,31 @@ class MyCallbacks : public BLECharacteristicCallbacks
       Serial.println("*********");
     }
 
-    if (pCharacteristic->getUUID().toString() == TYPE_UUID) {
-      setType(std::atoi(pCharacteristic->getValue().c_str()));
-    } else if (pCharacteristic->getUUID().toString() == BRIGHTNESS_UUID)  {
-      // set master brightness control
-      FastLED.setBrightness(std::atoi(pCharacteristic->getValue().c_str()));
-    } else if (pCharacteristic->getUUID().toString() == SPEED_UUID) {
-      setSpeed(std::atoi(pCharacteristic->getValue().c_str()));
-    } else if (pCharacteristic->getUUID().toString() == OFFSET_UUID) {
-      setOffset(std::atoi(pCharacteristic->getValue().c_str()));
+  
+    std::string uuid = pCharacteristic->getUUID().toString() 
+    if (uuid == TYPE_UUID) {
+      setType(pCharacteristic->getValue().toInt());
+    } else if (uuid == BRIGHTNESS_UUID)  {
+      setBrightness(pCharacteristic->getValue().toInt());
+    } else if (uuid == SPEED_UUID) {
+      setSpeed(pCharacteristic->getValue().toInt());
+    } else if (uuid == OFFSET_UUID) {
+      setOffset(pCharacteristic->getValue().toInt());
+    }
+  }
+  void onRead(BLECharacteristic *pCharacteristic)
+  {
+    pCharType->setValue(0);
+
+    std::string uuid = pCharacteristic->getUUID().toString() 
+    if (uuid == TYPE_UUID) {
+      pCharType->setValue(getType());
+    } else if (uuid == BRIGHTNESS_UUID)  {
+      pCharType->setValue(getBrightness());
+    } else if (uuid == SPEED_UUID) {
+      pCharType->setValue(getSpeed());
+    } else if (uuid == OFFSET_UUID) {
+      pCharType->setValue(getOffset));
     }
   }
 };
@@ -72,7 +89,7 @@ void bleInit(void) {
                       BLECharacteristic::PROPERTY_READ   |
                       BLECharacteristic::PROPERTY_WRITE
                     );
-  pCharType->setValue("1");
+  pCharType->setValue(0);
   pCharType->setCallbacks(new MyCallbacks());
 
   pCharBrightness = pService->createCharacteristic(
@@ -80,7 +97,7 @@ void bleInit(void) {
                       BLECharacteristic::PROPERTY_READ   |
                       BLECharacteristic::PROPERTY_WRITE
                     );
-  pCharBrightness->setValue("96");
+  pCharBrightness->setValue(0);
   pCharBrightness->setCallbacks(new MyCallbacks());
 
   pCharDistance = pService->createCharacteristic(
@@ -88,7 +105,7 @@ void bleInit(void) {
                       BLECharacteristic::PROPERTY_READ   |
                       BLECharacteristic::PROPERTY_WRITE
                     );
-  pCharDistance->setValue("10");
+  pCharDistance->setValue(0);
   pCharDistance->setCallbacks(new MyCallbacks());
 
   pCharSpeed = pService->createCharacteristic(
@@ -96,7 +113,7 @@ void bleInit(void) {
                       BLECharacteristic::PROPERTY_READ   |
                       BLECharacteristic::PROPERTY_WRITE
                     );
-  pCharSpeed->setValue("120");
+  pCharSpeed->setValue(0);
   pCharSpeed->setCallbacks(new MyCallbacks());
 
   pCharOffset = pService->createCharacteristic(
@@ -104,7 +121,7 @@ void bleInit(void) {
                       BLECharacteristic::PROPERTY_READ   |
                       BLECharacteristic::PROPERTY_WRITE
                     );
-  pCharOffset->setValue("0");
+  pCharOffset->setValue(0);
   pCharOffset->setCallbacks(new MyCallbacks());
 
 

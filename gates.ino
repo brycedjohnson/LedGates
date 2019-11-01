@@ -86,23 +86,82 @@ void loop()
     }
 }
 
-void setType(int type)
+void setType(int32_t type)
 {
+  if (patternType < ARRAY_SIZE( gPatterns)) {
+    persistSet_i32('type', type )
     patternType = type;
+  }
 }
 
-void setSpeed(int speed)
+void setSpeed(int32_t speed)
 {
+    persistSet_i32('speed', speed)
     patternSpeed = speed;
 }
 
-void setOffset(int offset)
+void setOffset(int32_t offset)
 {
+  persistSet_i32('offset', offset)
+
   if (patternOffset <= 0) {
       patternOffset = 1;
   } else {
       patternOffset = offset;
   }
+}
+
+void setBrightness(int32_t bright)
+{
+  if (bright < 255) {
+    persistSet_i32('brightness', offset)
+    FastLED.setBrightness(bright);
+  }
+}
+
+int32_t getBrightness(void)
+{
+  return persistGet_i32('brightness');
+}
+
+void setType(int32_t type)
+{
+  if (patternType < ARRAY_SIZE( gPatterns)) {
+    persistSet_i32('type', type )
+    patternType = type;
+  }
+}
+
+int32_t getType(void)
+{
+  return persistGet_i32('type');
+}
+
+void setSpeed(int32_t speed)
+{
+    persistSet_i32('speed', speed)
+    patternSpeed = speed;
+}
+
+int32_t getSpeed(void)
+{
+  return persistGet_i32('speed');
+}
+
+void setOffset(int32_t offset)
+{
+  persistSet_i32('offset', offset)
+
+  if (patternOffset <= 0) {
+      patternOffset = 1;
+  } else {
+      patternOffset = offset;
+  }
+}
+
+int32_t getOffset(void)
+{
+  return persistGet_i32('offset');
 }
 
 void nextPattern()

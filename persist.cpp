@@ -1,6 +1,8 @@
 #include "nvs_flash.h"
 #include "nvs.h"
 
+nvs_handle my_handle;
+
 void persistInit(void)
 {
     // Initialize NVS
@@ -16,7 +18,7 @@ void persistInit(void)
    // Open
     printf("\n");
     printf("Opening Non-Volatile Storage (NVS) handle... ");
-    nvs_handle my_handle;
+
     err = nvs_open("storage", NVS_READWRITE, &my_handle);
     if (err != ESP_OK) {
         printf("Error (%s) opening NVS handle!\n", esp_err_to_name(err));
@@ -58,3 +60,25 @@ void persistInit(void)
     }      
 }
 
+void persistSet_i32(const char * key, int32_t value)
+{
+        err = nvs_set_i32(my_handle, key, value);
+        printf("%s = %d ", key, value);
+        printf((err != ESP_OK) ? "Failed!\n" : "Done\n");
+}
+
+int32_t persistGet_i32(const char * key)
+{
+        err = nvs_get_i32(my_handle, key, value);
+        switch (err) {
+            case ESP_OK:
+                printf("Done\n");
+                printf("Restart counter = %d\n", restart_counter);
+                break;
+            case ESP_ERR_NVS_NOT_FOUND:
+                printf("The value is not initialized yet!\n");
+                break;
+            default :
+                printf("Error (%s) reading!\n", esp_err_to_name(err));
+        }
+}
