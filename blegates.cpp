@@ -2,6 +2,7 @@
 #include <BLEUtils.h>
 #include <BLEServer.h>
 #include <string>
+#include <sstream>
 #include <FastLED.h>
 #include <WiFi.h>
 #include "gates.h"
@@ -28,57 +29,45 @@ class MyCallbacks : public BLECharacteristicCallbacks
 {
   void onWrite(BLECharacteristic *pCharacteristic)
   {
-    std::string value = pCharacteristic->getValue();
+    int32_t value = atoi(pCharacteristic->getValue().c_str());
 
-    if (value.length() > 0) {
-      Serial.println("*********");
-      Serial.print("New value: ");
-      for (int i = 0; i < value.length(); i++) {
-        Serial.print(value[i]);
-      }
+    Serial.printf("New value: %d\n", value);
 
-      Serial.println();
-      Serial.println("*********");
-    }
-
-  
-    std::string uuid = pCharacteristic->getUUID().toString() 
+    std::string uuid = pCharacteristic->getUUID().toString();
     if (uuid == TYPE_UUID) {
-      setType(pCharacteristic->getValue().toInt());
+      setType(value);
     } else if (uuid == BRIGHTNESS_UUID)  {
-      setBrightness(pCharacteristic->getValue().toInt());
+      setBrightness(value);
     } else if (uuid == SPEED_UUID) {
-      setSpeed(pCharacteristic->getValue().toInt());
+      setSpeed(value);
     } else if (uuid == OFFSET_UUID) {
-      setOffset(pCharacteristic->getValue().toInt());
+      setOffset(value);
     }
   }
   void onRead(BLECharacteristic *pCharacteristic)
   {
-    pCharType->setValue(0);
+    std::string uuid = pCharacteristic->getUUID().toString();
 
-    std::string uuid = pCharacteristic->getUUID().toString() 
     if (uuid == TYPE_UUID) {
-      pCharType->setValue(getType());
-    } else if (uuid == BRIGHTNESS_UUID)  {
-      pCharType->setValue(getBrightness());
+      Serial.printf("Type Read: %d\n", getType());
+      //pCharacteristic->setValue(ss.str());
+    } else if (uuid == BRIGHTNESS_UUID) {
+      Serial.printf("Brightness Read: %d\n", getBrightness());
+      //pCharacteristic->setValue(ss.str());
     } else if (uuid == SPEED_UUID) {
-      pCharType->setValue(getSpeed());
+      Serial.printf("Speed Read: %d\n", getSpeed());
+      //pCharacteristic->setValue(ss.str());
     } else if (uuid == OFFSET_UUID) {
-      pCharType->setValue(getOffset));
+      Serial.printf("Offset Read: %d\n", getOffset());
+      //pCharacteristic->setValue(ss.str());      
+    } else if (uuid == IP_UUID) {
+      pCharacteristic->setValue(WiFi.localIP().toString().c_str());
     }
   }
 };
 
-class IpCallback : public BLECharacteristicCallbacks
+void bleInit(void)
 {
-  void onRead(BLECharacteristic *pCharacteristic)
-  {
-    pCharacteristic->setValue(WiFi.localIP().toString().c_str());
-  }
-};
-
-void bleInit(void) {
   BLEDevice::init("ESP_LEDGates");
   pServer = BLEDevice::createServer();
 
@@ -89,7 +78,6 @@ void bleInit(void) {
                       BLECharacteristic::PROPERTY_READ   |
                       BLECharacteristic::PROPERTY_WRITE
                     );
-  pCharType->setValue(0);
   pCharType->setCallbacks(new MyCallbacks());
 
   pCharBrightness = pService->createCharacteristic(
@@ -97,7 +85,6 @@ void bleInit(void) {
                       BLECharacteristic::PROPERTY_READ   |
                       BLECharacteristic::PROPERTY_WRITE
                     );
-  pCharBrightness->setValue(0);
   pCharBrightness->setCallbacks(new MyCallbacks());
 
   pCharDistance = pService->createCharacteristic(
@@ -105,7 +92,6 @@ void bleInit(void) {
                       BLECharacteristic::PROPERTY_READ   |
                       BLECharacteristic::PROPERTY_WRITE
                     );
-  pCharDistance->setValue(0);
   pCharDistance->setCallbacks(new MyCallbacks());
 
   pCharSpeed = pService->createCharacteristic(
@@ -113,7 +99,6 @@ void bleInit(void) {
                       BLECharacteristic::PROPERTY_READ   |
                       BLECharacteristic::PROPERTY_WRITE
                     );
-  pCharSpeed->setValue(0);
   pCharSpeed->setCallbacks(new MyCallbacks());
 
   pCharOffset = pService->createCharacteristic(
@@ -121,7 +106,6 @@ void bleInit(void) {
                       BLECharacteristic::PROPERTY_READ   |
                       BLECharacteristic::PROPERTY_WRITE
                     );
-  pCharOffset->setValue(0);
   pCharOffset->setCallbacks(new MyCallbacks());
 
 
@@ -129,8 +113,7 @@ void bleInit(void) {
                       IP_UUID,
                       BLECharacteristic::PROPERTY_READ   
                     );
-  pCharIP->setValue("0.0.0.0");
-  pCharIP->setCallbacks(new IpCallback());
+  pCharIP->setCallbacks(new MyCallbacks());
 
   pService->start();
   BLEAdvertising *pAdvertising = pServer->getAdvertising();
@@ -144,5 +127,5 @@ void bleInit(void) {
 void bleSetIp(char* IP) 
 {
   pCharIP->setValue(IP);
-
 }
+

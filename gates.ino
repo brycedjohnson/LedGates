@@ -17,21 +17,25 @@ FASTLED_USING_NAMESPACE
 #define STRIP8_PIN    21
 
 //#define CLK_PIN   4
-#define LED_TYPE    WS2811
+#define LED_TYPE    WS2813
 #define COLOR_ORDER GRB
-#define NUM_LEDS_PER_STRIP 50
-#define NUM_STRIPS 8
+#define NUM_LEDS_PER_STRIP 354 //354
+#define NUM_STRIPS 1
 #define NUM_LEDS    (NUM_LEDS_PER_STRIP * NUM_STRIPS)
 CRGB leds[NUM_LEDS];
 
 #define OFFSET NUM_LEDS_PER_STRIP
-#define FRAMES_PER_SECOND  60
 
 #define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
 
-static int patternType = 0;
-static int patternSpeed = 120;
-static int patternOffset = 1;
+#define BRIGHTNESS_DEFAULT 96
+#define TYPE_DEFAULT 0
+#define SPEED_DEFAULT 1
+#define OFFSET_DEFAULT 9
+
+static int patternType = TYPE_DEFAULT;
+static int patternSpeed = SPEED_DEFAULT;
+static int patternOffset = OFFSET_DEFAULT;
 
 void setup()
 {
@@ -44,22 +48,26 @@ void setup()
       
   // tell FastLED about the LED strip configuration
   FastLED.addLeds<LED_TYPE,STRIP1_PIN,COLOR_ORDER>(leds, 0, NUM_LEDS_PER_STRIP).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<LED_TYPE,STRIP2_PIN,COLOR_ORDER>(leds, OFFSET * 1, NUM_LEDS_PER_STRIP).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<LED_TYPE,STRIP3_PIN,COLOR_ORDER>(leds, OFFSET * 2, NUM_LEDS_PER_STRIP).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<LED_TYPE,STRIP4_PIN,COLOR_ORDER>(leds, OFFSET * 3, NUM_LEDS_PER_STRIP).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<LED_TYPE,STRIP5_PIN,COLOR_ORDER>(leds, OFFSET * 4, NUM_LEDS_PER_STRIP).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<LED_TYPE,STRIP6_PIN,COLOR_ORDER>(leds, OFFSET * 5, NUM_LEDS_PER_STRIP).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<LED_TYPE,STRIP7_PIN,COLOR_ORDER>(leds, OFFSET * 6, NUM_LEDS_PER_STRIP).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<LED_TYPE,STRIP8_PIN,COLOR_ORDER>(leds, OFFSET * 7, NUM_LEDS_PER_STRIP).setCorrection(TypicalLEDStrip);
+  //FastLED.addLeds<LED_TYPE,STRIP2_PIN,COLOR_ORDER>(leds, OFFSET * 1, NUM_LEDS_PER_STRIP).setCorrection(TypicalLEDStrip);
+  //FastLED.addLeds<LED_TYPE,STRIP3_PIN,COLOR_ORDER>(leds, OFFSET * 2, NUM_LEDS_PER_STRIP).setCorrection(TypicalLEDStrip);
+  //FastLED.addLeds<LED_TYPE,STRIP4_PIN,COLOR_ORDER>(leds, OFFSET * 3, NUM_LEDS_PER_STRIP).setCorrection(TypicalLEDStrip);
+  //FastLED.addLeds<LED_TYPE,STRIP5_PIN,COLOR_ORDER>(leds, OFFSET * 4, NUM_LEDS_PER_STRIP).setCorrection(TypicalLEDStrip);
+  //FastLED.addLeds<LED_TYPE,STRIP6_PIN,COLOR_ORDER>(leds, OFFSET * 5, NUM_LEDS_PER_STRIP).setCorrection(TypicalLEDStrip);
+  //FastLED.addLeds<LED_TYPE,STRIP7_PIN,COLOR_ORDER>(leds, OFFSET * 6, NUM_LEDS_PER_STRIP).setCorrection(TypicalLEDStrip);
+  //FastLED.addLeds<LED_TYPE,STRIP8_PIN,COLOR_ORDER>(leds, OFFSET * 7, NUM_LEDS_PER_STRIP).setCorrection(TypicalLEDStrip);
   //FastLED.addLeds<LED_TYPE,DATA_PIN,CLK_PIN,COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
 
-  Serial.println("Init complete");
+  FastLED.setBrightness(getBrightness());
+  patternType = getType();
+  patternSpeed = getSpeed();
+  patternOffset = getOffset();
 
+  Serial.println("Init complete");
 }
 
 // List of patterns to cycle through.  Each is defined as a separate function below.
 typedef void (*SimplePatternList[])();
-SimplePatternList gPatterns = { sprial, sprial2, sinelon, Fire2012, confetti, rainbow, bpm};
+SimplePatternList gPatterns = { sprial, sprial2, sinelon, Fire2012, confetti, rainbow, bpm, starfield, redtest, bluetest, greentest};
 
 uint8_t gCurrentPatternNumber = 0; // Index number of which pattern is current
 uint8_t gHue = 0; // rotating "base color" used by many of the patterns
@@ -86,82 +94,74 @@ void loop()
     }
 }
 
-void setType(int32_t type)
-{
-  if (patternType < ARRAY_SIZE( gPatterns)) {
-    persistSet_i32('type', type )
-    patternType = type;
-  }
-}
-
-void setSpeed(int32_t speed)
-{
-    persistSet_i32('speed', speed)
-    patternSpeed = speed;
-}
-
-void setOffset(int32_t offset)
-{
-  persistSet_i32('offset', offset)
-
-  if (patternOffset <= 0) {
-      patternOffset = 1;
-  } else {
-      patternOffset = offset;
-  }
-}
 
 void setBrightness(int32_t bright)
 {
   if (bright < 255) {
-    persistSet_i32('brightness', offset)
+    persistSet_i32("brightness", bright);
     FastLED.setBrightness(bright);
   }
 }
 
 int32_t getBrightness(void)
 {
-  return persistGet_i32('brightness');
+  int32_t value = persistGet_i32("brightness");
+  if (value < 0) {
+    value = BRIGHTNESS_DEFAULT;
+  }
+  return value;
 }
 
 void setType(int32_t type)
 {
-  if (patternType < ARRAY_SIZE( gPatterns)) {
-    persistSet_i32('type', type )
+  if (type < ARRAY_SIZE( gPatterns)) {
+    persistSet_i32("type", type);
     patternType = type;
   }
 }
 
 int32_t getType(void)
 {
-  return persistGet_i32('type');
+  int32_t value = persistGet_i32("type");
+  if (value < 0) {
+    value = TYPE_DEFAULT;
+  }
+  return value;
 }
 
 void setSpeed(int32_t speed)
 {
-    persistSet_i32('speed', speed)
+    persistSet_i32("speed", speed);
     patternSpeed = speed;
 }
 
 int32_t getSpeed(void)
 {
-  return persistGet_i32('speed');
+  int32_t value = persistGet_i32("speed");
+  if (value < 0) {
+    value = SPEED_DEFAULT;
+  }
+  return value;
 }
 
 void setOffset(int32_t offset)
 {
-  persistSet_i32('offset', offset)
-
   if (patternOffset <= 0) {
       patternOffset = 1;
   } else {
       patternOffset = offset;
   }
+  persistSet_i32("offset", offset);
+
 }
 
 int32_t getOffset(void)
 {
-  return persistGet_i32('offset');
+  int32_t value = persistGet_i32("offset");
+  if (value < 0) {
+    value = OFFSET_DEFAULT;
+  }
+  return value;
 }
 
 void nextPattern()
@@ -233,21 +233,22 @@ void juggle() {
   }
 }
 
-#define SPRIAL_OFFSET 9
+//#define SPRIAL_OFFSET 9
 void sprial() {
   static int pos = 0;
   fadeToBlackBy( leds, NUM_LEDS, 10);
   byte dothue = 0;//gHue;
-  pos = pos + 1;
+  pos = pos + 2;
   if (pos >= NUM_LEDS) {
       pos = 0;
       gHue++;
   }
-  for (int i = 0; i < SPRIAL_OFFSET; i++) {
+  for (int i = 0; i < patternOffset; i++) {
     dothue = gHue;
-    leds[(pos + (NUM_LEDS * i / SPRIAL_OFFSET)) % NUM_LEDS] = CRGB (255,255,255);
-    leds[(pos + (NUM_LEDS * i / SPRIAL_OFFSET) - 1) % NUM_LEDS] = CRGB (255,255,255);
-    leds[(pos + (NUM_LEDS * i / SPRIAL_OFFSET) - 2) % NUM_LEDS] = CHSV(dothue, 200, 255);
+    leds[(pos + (NUM_LEDS * i / patternOffset)) % NUM_LEDS] = CRGB (255,255,255);
+    leds[(pos + (NUM_LEDS * i / patternOffset) - 1) % NUM_LEDS] = CRGB (255,255,255);
+    leds[(pos + (NUM_LEDS * i / patternOffset) - 2) % NUM_LEDS] = CHSV(dothue, 200, 255);
+    leds[(pos + (NUM_LEDS * i / patternOffset) - 3) % NUM_LEDS] = CHSV(dothue, 200, 255);
   }
 }
 
@@ -421,4 +422,31 @@ void starfield() {
     Serial.println("Starfield Pattern");
   } */
 
+}
+
+void redtest() 
+{
+  static uint32_t i =0;
+  i++;
+  leds[i % NUM_LEDS] = CRGB (255,255,255);
+  leds[(i - 1) % NUM_LEDS] = CRGB (255,255,255);
+  leds[(i - 2) % NUM_LEDS] = CHSV(HUE_RED, 200, 255);
+}
+
+void greentest() 
+{
+  static uint32_t i = 0;
+  i++;
+  leds[i % NUM_LEDS] = CRGB (255,255,255);
+  leds[(i - 1) % NUM_LEDS] = CRGB (255,255,255);
+  leds[(i - 2) % NUM_LEDS] = CHSV(HUE_GREEN, 200, 255);
+}
+
+void bluetest() 
+{
+  static uint32_t i = 0;
+  i++;
+  leds[i % NUM_LEDS] = CRGB (255,255,255);
+  leds[(i - 1) % NUM_LEDS] = CRGB (255,255,255);
+  leds[(i - 2) % NUM_LEDS] = CHSV(HUE_BLUE, 200, 255);
 }
