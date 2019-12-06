@@ -2,7 +2,6 @@
 #include <BLEUtils.h>
 #include <BLEServer.h>
 #include <string>
-#include <sstream>
 #include <FastLED.h>
 #include <WiFi.h>
 #include "gates.h"
@@ -11,7 +10,7 @@
 BLEServer* pServer = NULL;
 BLECharacteristic* pCharType = NULL;
 BLECharacteristic* pCharBrightness = NULL;
-BLECharacteristic* pCharDistance = NULL;
+BLECharacteristic* pCharSkip = NULL;
 BLECharacteristic* pCharSpeed = NULL;
 BLECharacteristic* pCharOffset = NULL;
 BLECharacteristic* pCharIP = NULL;
@@ -19,11 +18,10 @@ BLECharacteristic* pCharIP = NULL;
 #define SERVICE_UUID "12eaeae5-8035-4488-99d3-48c87c04a000"
 #define TYPE_UUID "0a297a8b-23aa-459b-ace0-9ce2723a6001"
 #define BRIGHTNESS_UUID "0a297a8b-23aa-459b-ace0-9ce2723a6002"
-#define DISTANCE_UUID "0a297a8b-23aa-459b-ace0-9ce2723a6003"
+#define SKIP_UUID "0a297a8b-23aa-459b-ace0-9ce2723a6003"
 #define SPEED_UUID "12eaeae5-8035-4488-99d3-48c87c04a004"
 #define OFFSET_UUID "12eaeae5-8035-4488-99d3-48c87c04a005"
 #define IP_UUID "12eaeae5-8035-4488-99d3-48c87c04a006"
-
 
 class MyCallbacks : public BLECharacteristicCallbacks
 {
@@ -40,26 +38,37 @@ class MyCallbacks : public BLECharacteristicCallbacks
       setBrightness(value);
     } else if (uuid == SPEED_UUID) {
       setSpeed(value);
+    } else if (uuid == SKIP_UUID) {
+      setSkip(value);      
     } else if (uuid == OFFSET_UUID) {
       setOffset(value);
     }
   }
   void onRead(BLECharacteristic *pCharacteristic)
   {
+    char stringbuf[10]; 
     std::string uuid = pCharacteristic->getUUID().toString();
 
     if (uuid == TYPE_UUID) {
-      Serial.printf("Type Read: %d\n", getType());
-      //pCharacteristic->setValue(ss.str());
+      sprintf(stringbuf, "%d",  getType()); 
+      Serial.printf("Type Read: %s\n", stringbuf);
+      pCharacteristic->setValue(stringbuf);
     } else if (uuid == BRIGHTNESS_UUID) {
-      Serial.printf("Brightness Read: %d\n", getBrightness());
-      //pCharacteristic->setValue(ss.str());
+      sprintf(stringbuf, "%d",  getBrightness()); 
+      Serial.printf("Brightness Read: %s\n", stringbuf);
+      pCharacteristic->setValue(stringbuf);
     } else if (uuid == SPEED_UUID) {
-      Serial.printf("Speed Read: %d\n", getSpeed());
-      //pCharacteristic->setValue(ss.str());
+      sprintf(stringbuf, "%d",  getSpeed()); 
+      Serial.printf("Speed Read: %s\n", stringbuf);
+      pCharacteristic->setValue(stringbuf);
+    } else if (uuid == SKIP_UUID) {
+      sprintf(stringbuf, "%d",  getSkip()); 
+      Serial.printf("Skip Read: %s\n", stringbuf);
+      pCharacteristic->setValue(stringbuf);      
     } else if (uuid == OFFSET_UUID) {
-      Serial.printf("Offset Read: %d\n", getOffset());
-      //pCharacteristic->setValue(ss.str());      
+      sprintf(stringbuf, "%d",  getOffset()); 
+      Serial.printf("Offset Read: %s\n", stringbuf);
+      pCharacteristic->setValue(stringbuf);
     } else if (uuid == IP_UUID) {
       pCharacteristic->setValue(WiFi.localIP().toString().c_str());
     }
@@ -87,12 +96,12 @@ void bleInit(void)
                     );
   pCharBrightness->setCallbacks(new MyCallbacks());
 
-  pCharDistance = pService->createCharacteristic(
-                      DISTANCE_UUID,
+  pCharSkip = pService->createCharacteristic(
+                      SKIP_UUID,
                       BLECharacteristic::PROPERTY_READ   |
                       BLECharacteristic::PROPERTY_WRITE
                     );
-  pCharDistance->setCallbacks(new MyCallbacks());
+  pCharSkip->setCallbacks(new MyCallbacks());
 
   pCharSpeed = pService->createCharacteristic(
                       SPEED_UUID,

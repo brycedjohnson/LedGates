@@ -6,8 +6,9 @@ FASTLED_USING_NAMESPACE
 #include "wifigates.h"
 #include "blegates.h"
 #include "persist.h"
+#include "tft.h"
 
-#define STRIP1_PIN    27
+#define STRIP1_PIN    12
 #define STRIP2_PIN    26
 #define STRIP3_PIN    25
 #define STRIP4_PIN    33
@@ -19,7 +20,7 @@ FASTLED_USING_NAMESPACE
 //#define CLK_PIN   4
 #define LED_TYPE    WS2813
 #define COLOR_ORDER GRB
-#define NUM_LEDS_PER_STRIP 354 //354
+#define NUM_LEDS_PER_STRIP 354 //50 //354
 #define NUM_STRIPS 1
 #define NUM_LEDS    (NUM_LEDS_PER_STRIP * NUM_STRIPS)
 CRGB leds[NUM_LEDS];
@@ -30,22 +31,24 @@ CRGB leds[NUM_LEDS];
 
 #define BRIGHTNESS_DEFAULT 96
 #define TYPE_DEFAULT 0
-#define SPEED_DEFAULT 1
+#define SPEED_DEFAULT 100
+#define SKIP_DEFAULT 0
 #define OFFSET_DEFAULT 9
 
 static int patternType = TYPE_DEFAULT;
 static int patternSpeed = SPEED_DEFAULT;
+static int patternSkip = SKIP_DEFAULT;
 static int patternOffset = OFFSET_DEFAULT;
 
 void setup()
 {
   Serial.begin(115200);
   Serial.println("Initializing...");
-
+  //tftInit();
   persistInit();
   bleInit();
   wifiInit();
-      
+
   // tell FastLED about the LED strip configuration
   FastLED.addLeds<LED_TYPE,STRIP1_PIN,COLOR_ORDER>(leds, 0, NUM_LEDS_PER_STRIP).setCorrection(TypicalLEDStrip);
   //FastLED.addLeds<LED_TYPE,STRIP2_PIN,COLOR_ORDER>(leds, OFFSET * 1, NUM_LEDS_PER_STRIP).setCorrection(TypicalLEDStrip);
@@ -55,7 +58,6 @@ void setup()
   //FastLED.addLeds<LED_TYPE,STRIP6_PIN,COLOR_ORDER>(leds, OFFSET * 5, NUM_LEDS_PER_STRIP).setCorrection(TypicalLEDStrip);
   //FastLED.addLeds<LED_TYPE,STRIP7_PIN,COLOR_ORDER>(leds, OFFSET * 6, NUM_LEDS_PER_STRIP).setCorrection(TypicalLEDStrip);
   //FastLED.addLeds<LED_TYPE,STRIP8_PIN,COLOR_ORDER>(leds, OFFSET * 7, NUM_LEDS_PER_STRIP).setCorrection(TypicalLEDStrip);
-  //FastLED.addLeds<LED_TYPE,DATA_PIN,CLK_PIN,COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
 
   FastLED.setBrightness(getBrightness());
   patternType = getType();
@@ -67,25 +69,34 @@ void setup()
 
 // List of patterns to cycle through.  Each is defined as a separate function below.
 typedef void (*SimplePatternList[])();
-SimplePatternList gPatterns = { sprial, sprial2, sinelon, Fire2012, confetti, rainbow, bpm, starfield, redtest, bluetest, greentest};
+SimplePatternList gPatterns = { sprial, sprial2, sinelon, Fire2012, confetti, rainbow, bpm, redtest, bluetest, greentest};
 
 uint8_t gCurrentPatternNumber = 0; // Index number of which pattern is current
 uint8_t gHue = 0; // rotating "base color" used by many of the patterns
 
 void loop()
 {
-    EVERY_N_SECONDS(1) {wifiLoopHandle();}
+    EVERY_N_SECONDS(1) {
+      wifiLoopHandle();
+      //tftLoop();
+    }
 
-    // Call the current pattern function once, updating the 'leds' array
-    gPatterns[gCurrentPatternNumber]();
+    for (int i = 0; i <= patternSkip; i++) {
+      // Call the current pattern function once, updating the 'leds' array
+      gPatterns[gCurrentPatternNumber]();
+    }
 
     // send the 'leds' array out to the actual LED strip
     FastLED.show();  
     // insert a delay to keep the framerate modest
-    FastLED.delay(1000/patternSpeed); 
+    if (patternSpeed < 600) {
+      FastLED.delay(1000/patternSpeed); 
+    }
 
     // do some periodic updates
-    EVERY_N_MILLISECONDS( 20 ) { gHue++; } // slowly cycle the "base color" through the rainbow
+    EVERY_N_MILLISECONDS(20) { 
+      gHue++; 
+    } // slowly cycle the "base color" through the rainbow
   
     if (patternType < ARRAY_SIZE( gPatterns)) {
         gCurrentPatternNumber = patternType;
@@ -93,7 +104,6 @@ void loop()
         //EVERY_N_SECONDS( 10 ) { nextPattern(); } // change patterns periodically
     }
 }
-
 
 void setBrightness(int32_t bright)
 {
@@ -140,6 +150,21 @@ int32_t getSpeed(void)
   int32_t value = persistGet_i32("speed");
   if (value < 0) {
     value = SPEED_DEFAULT;
+  }
+  return value;
+}
+
+void setSkip(int32_t skip)
+{
+    persistSet_i32("skip", skip);
+    patternSkip = skip;
+}
+
+int32_t getSkip(void)
+{
+  int32_t value = persistGet_i32("skip");
+  if (value <= 0) {
+    value = SKIP_DEFAULT;
   }
   return value;
 }
@@ -220,10 +245,10 @@ void bpm()
         leds[i+j*NUM_LEDS_PER_STRIP] = ColorFromPalette(palette, gHue+(i*2), beat-gHue+(i*10));
     }
   } 
-  
 }
 
-void juggle() {
+void juggle()
+{
   // 4 colored dots, weaving in and out of sync with each other
   fadeToBlackBy( leds, NUM_LEDS, 5);
   byte dothue = 0;
@@ -234,36 +259,37 @@ void juggle() {
 }
 
 //#define SPRIAL_OFFSET 9
-void sprial() {
-  static int pos = 0;
+void sprial()
+{
+  static uint32_t pos = 0;
   fadeToBlackBy( leds, NUM_LEDS, 10);
   byte dothue = 0;//gHue;
-  pos = pos + 2;
+  pos = pos + 1;
+  ledstest[0] = 0;
   if (pos >= NUM_LEDS) {
       pos = 0;
       gHue++;
   }
   for (int i = 0; i < patternOffset; i++) {
     dothue = gHue;
-    leds[(pos + (NUM_LEDS * i / patternOffset)) % NUM_LEDS] = CRGB (255,255,255);
-    leds[(pos + (NUM_LEDS * i / patternOffset) - 1) % NUM_LEDS] = CRGB (255,255,255);
-    leds[(pos + (NUM_LEDS * i / patternOffset) - 2) % NUM_LEDS] = CHSV(dothue, 200, 255);
-    leds[(pos + (NUM_LEDS * i / patternOffset) - 3) % NUM_LEDS] = CHSV(dothue, 200, 255);
+    leds[(pos + ((NUM_LEDS * i) / patternOffset)) % NUM_LEDS] = CRGB (255,255,255);
+    leds[(pos + ((NUM_LEDS * i) / patternOffset) - 1) % NUM_LEDS] = CRGB (255,255,255);
+    leds[(pos + ((NUM_LEDS * i) / patternOffset) - 2) % NUM_LEDS] = CHSV(dothue, 200, 255);
   }
 }
 
-void sprial2() {
-  static int pos = 0;
+void sprial2()
+{
+  static uint32_t pos = 0;
   fadeToBlackBy( leds, NUM_LEDS, 10);
-  byte dothue = 0;//gHue;
+  static byte dothue = 0;//gHue;
 
   pos = pos + 1;
   if (pos >= NUM_LEDS) {
       pos = 0;
-      gHue++;
+      dothue++;
   }
   for (int i = 0; i < patternOffset; i++) {
-    dothue = gHue;
     leds[(pos + (NUM_LEDS * i / patternOffset)) % NUM_LEDS] = CRGB (255,255,255);
     leds[(pos + (NUM_LEDS * i / patternOffset) - 1) % NUM_LEDS] = CRGB (255,255,255);
     leds[(pos + (NUM_LEDS * i / patternOffset) - 2) % NUM_LEDS] = CHSV(dothue, 200, 255);
@@ -352,76 +378,6 @@ void Fire2012()
             gReverseDirection = true;
         }
     }
-}
-
-// Star Parameters
-#define LEAD_LEDS            3
-#define TAIL_LEDS            8
-#define MAX_STAR_SPEED_DIFF  3
-#define STARS_PER_STRAND     6
-#define FADE_SPEED           2
-
-// Allow for a buffer at the end of the string to avoid congrunet memory overrun
-CRGB starLeds[NUM_LEDS+LEAD_LEDS+3]; 
-
-uint8_t lastStarPosition[STARS_PER_STRAND];
-uint8_t lastStarSpeed[STARS_PER_STRAND];
-CRGB    lastStarColor[STARS_PER_STRAND];
-uint8_t HueSatMode = 0; //Hue mode
-uint8_t lastBrightness = 192;
-
-struct {
-  uint8_t volatile pattern    = 0;
-  uint8_t volatile brightness = 192;
-  uint8_t volatile hue        = 160;  // Star color hue - Default to blue
-  uint8_t volatile sat        = 255;  // Star color saturation - Default to full
-  uint8_t volatile starcycle  = 0; // Color Cycle on the Stars - 0 - Single Color, 1 - Color Sequence, 2 - Color Random
-} color;
-
-struct {
-  uint8_t volatile ledspeed   = 10; // Speed (0 to 10).
-  uint8_t volatile leddir     = 0; // This may be needed to control the direction, but speed value may be good enough. 
-} motion;
-
-void starfield() {
-  uint8_t j, k;
-
-  for(k=0; k < STARS_PER_STRAND; k++) {
-    fadeToBlackBy( starLeds, NUM_LEDS, FADE_SPEED);
-
-    for(j=0; j < LEAD_LEDS; j++) {
-      starLeds[j+lastStarPosition[k]] = lastStarColor[k];
-    }
- 
-    if(motion.leddir == 0) {
-      if(lastStarPosition[k] > NUM_LEDS) {
-        lastStarPosition[k] = 0;
-        lastStarSpeed[k] = random8(1,MAX_STAR_SPEED_DIFF);
-          
-        if(color.hue > 248)
-          lastStarColor[k] = CRGB::White;
-        else
-          lastStarColor[k] = CHSV(color.hue,color.sat,color.brightness);// CRGB(random8(50,255),random8(50,255),random8(50,255));
-      } else {
-        lastStarPosition[k]=lastStarPosition[k]+lastStarSpeed[k];
-      }
-    } else {
-      if(lastStarPosition[k] < 2) {
-        lastStarPosition[k] = NUM_LEDS;
-        lastStarSpeed[k] = random8(1,MAX_STAR_SPEED_DIFF);
-        if(color.hue > 248)
-          lastStarColor[k] = CRGB::White;
-        else
-          lastStarColor[k] = CHSV(color.hue,color.sat,color.brightness);
-      } else {
-        lastStarPosition[k]=lastStarPosition[k]-lastStarSpeed[k];
-      }
-    }
-  }
-/*  EVERY_N_SECONDS(1) {
-    Serial.println("Starfield Pattern");
-  } */
-
 }
 
 void redtest() 
