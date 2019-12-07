@@ -44,7 +44,7 @@ void setup()
 {
   Serial.begin(115200);
   Serial.println("Initializing...");
-  //tftInit();
+  tftInit();
   persistInit();
   bleInit();
   wifiInit();
@@ -78,7 +78,7 @@ void loop()
 {
     EVERY_N_SECONDS(1) {
       wifiLoopHandle();
-      //tftLoop();
+      tftLoop();
     }
 
     for (int i = 0; i <= patternSkip; i++) {
@@ -265,7 +265,6 @@ void sprial()
   fadeToBlackBy( leds, NUM_LEDS, 10);
   byte dothue = 0;//gHue;
   pos = pos + 1;
-  ledstest[0] = 0;
   if (pos >= NUM_LEDS) {
       pos = 0;
       gHue++;
