@@ -107,71 +107,83 @@ void loop()
 
 void setBrightness(int32_t bright)
 {
-  if (bright < 255) {
-    persistSet_i32("brightness", bright);
-    FastLED.setBrightness(bright);
-  }
+  if (bright < 0 || bright > 255) {
+    value = BRIGHTNESS_DEFAULT;
+  } 
+  persistSet_i32("brightness", bright);
+  FastLED.setBrightness(bright);
 }
 
 int32_t getBrightness(void)
 {
   int32_t value = persistGet_i32("brightness");
-  if (value < 0) {
+  if (value < 0 || value > 255) {
     value = BRIGHTNESS_DEFAULT;
+    setBrightness(value);
   }
   return value;
 }
 
 void setType(int32_t type)
 {
-  if (type < ARRAY_SIZE( gPatterns)) {
-    persistSet_i32("type", type);
-    patternType = type;
+  if (type < 0 || type >= ARRAY_SIZE( gPatterns)) {
+    type = TYPE_DEFAULT;
   }
+  persistSet_i32("type", type);
+  patternType = type;
 }
 
 int32_t getType(void)
 {
   int32_t value = persistGet_i32("type");
-  if (value < 0) {
+  if (value < 0 || value >= ARRAY_SIZE( gPatterns)) {
     value = TYPE_DEFAULT;
+    setType(value);
   }
   return value;
 }
 
 void setSpeed(int32_t speed)
 {
-    persistSet_i32("speed", speed);
-    patternSpeed = speed;
+  if (speed <= 0 || speed > 2000) {
+    speed = SPEED_DEFAULT;
+  } 
+  persistSet_i32("speed", speed);
+  patternSpeed = speed;
 }
 
 int32_t getSpeed(void)
 {
   int32_t value = persistGet_i32("speed");
-  if (value < 0) {
+  if (value <= 0 || value > 2000) {
     value = SPEED_DEFAULT;
+    setSpeed(value);
   }
   return value;
 }
 
 void setSkip(int32_t skip)
 {
-    persistSet_i32("skip", skip);
-    patternSkip = skip;
+  if (skip <= 0 || skip > 10) {
+    skip = SKIP_DEFAULT;
+  } 
+  persistSet_i32("skip", skip);
+  patternSkip = skip;
 }
 
 int32_t getSkip(void)
 {
   int32_t value = persistGet_i32("skip");
-  if (value <= 0) {
+  if (value <= 0 || value > 10) {
     value = SKIP_DEFAULT;
+    setSkip(value);
   }
   return value;
 }
 
 void setOffset(int32_t offset)
 {
-  if (patternOffset <= 0) {
+  if (offset <= 0 || offset > 25) {
       patternOffset = 1;
   } else {
       patternOffset = offset;
@@ -183,7 +195,7 @@ void setOffset(int32_t offset)
 int32_t getOffset(void)
 {
   int32_t value = persistGet_i32("offset");
-  if (value < 0) {
+  if (value < 0 || value > 25) {
     value = OFFSET_DEFAULT;
   }
   return value;
