@@ -1,0 +1,6 @@
+UseTab: false
+IndentWidth: 4
+BreakBeforeBraces: WebKit
+AllowShortIfStatementsOnASingleLine: true
+IndentCaseLabels: true
+ColumnLimit: 0

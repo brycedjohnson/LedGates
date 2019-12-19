@@ -1,2 +1,2 @@
 void bleInit(void);
-void bleSetIp(char* IP);
+void bleSetIp(char *IP);
